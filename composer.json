@@ -1,0 +1,17 @@
+{
+    "name": "remiheens/pph-wowza-securetoken",
+    "description": "PHP library for Wowza SecureToken module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Remi Heens",
+            "email": "remi@tuto.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"remiheens\\WowzaSecureToken\\": "src\\remiheens\\WowzaSecureToken\\"}
+    },
+    "require": {
+        "php": ">=5.2.0"
+    }
+}
