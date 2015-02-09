@@ -44,6 +44,55 @@ class WowzaSecureToken
      * @var string secret key
      */
     private $sharedSecret;
+    
+    /**
+     *
+     * @var string url 
+     */
+    private $url;
+    /**
+     *
+     * @var string path url 
+     */
+    private $urlPath;
+    
+    /**
+     *
+     * @var int index of algorithm used to define hash method
+     */
+    private $hashMethod = self::SHA256;
+    
+    /**
+     *
+     * @var array extra params used to generate token 
+     */
+    private $params = array();
+    
+    /**
+     * 
+     * @param string $prefix Set prefix. 
+     *      The prefix value can only have the following characters that are safe to use in URLs:	
+     *      alphanumeric characters (a - z, A - Z, 0 - 9), percent sign (%), period (.), underscore (_),
+-    *      tilde (~), and hyphen (-).
+     * @param string $sharedSecret Set shared secret key
+     * @throws WowzaException
+     */
+    public function __construct($prefix, $sharedSecret)
+    {
+        $patternPrefix = '|^[\w\d%\._\-~]+$|';
+        if(!preg_match($patternPrefix, $prefix))
+        {
+            throw new WowzaException("Prefix [ " . $prefix . " ] is invalid");
+        }
+        $this->prefix = $prefix;
+        
+        $patternSecret = '|^[\w\d]+$|';
+        if(!preg_match($patternSecret, $sharedSecret))
+        {
+            throw new WowzaException("Secret [" . $sharedSecret . "] is invalid");
+        }
+        $this->sharedSecret = $sharedSecret;
+    }
 
     /**
      * Set client IP for using in hash
@@ -69,75 +118,69 @@ class WowzaSecureToken
     }
 
     /**
-     * Set shared secret key
-     *
-     * @param $secret string
+     * Set client URL for using in hash
+     * 
+     * @param string $url
      * @throws WowzaException
      */
-    public function setSharedSecret($secret)
+    public function setURL($url)
     {
-        $pattern = '|^[\w\d]+$|';
-        if(!preg_match($pattern, $secret))
-        {
-            throw new WowzaException("Secret [" . $secret . "] is invalid");
-        }
-        $this->sharedSecret = $secret;
-    }
-
-    public function getSharedSecret()
-    {
-        return $this->sharedSecret;
-    }
-
-    /**
-     * Set prefix. The prefix value can only have the following characters that are safe to use in URLs:
-     * alphanumeric characters (a - z, A - Z, 0 - 9), percent sign (%), period (.), underscore (_),
-     * tilde (~), and hyphen (-).
-     *
-     * @param $prefix
-     * @throws WowzaException
-     */
-    public function setPrefix($prefix)
-    {
-        $pattern = '|^[\w\d%\._\-~]+$|';
-        if(!preg_match($pattern, $prefix))
-        {
-            throw new WowzaException("Prefix [ " . $prefix . " ] is invalid");
-        }
-        $this->prefix = $prefix;
-    }
-
-    public function getPrefix()
-    {
-        return $this->prefix;
-    }
-
-    public function getHash($contentUrl, $hashMethod, $params = array())
-    {
-        $this->_verifyConfiguration($hashMethod);
-        $query = $this->_paramsToQueryString($params);
-
-        $urlInfo = parse_url($contentUrl);
+        $urlInfo = parse_url($url);
         if(!isset($urlInfo['path']))
         {
             throw new WowzaException("Invalid url supplied");
         }
 
-        $path = ltrim($urlInfo['path'], '/');
-
-        $pathItems = explode('/', $path);
-        if(count($pathItems) < 2)
-        {
-            throw new WowzaException("Application or stream is invalid");
-        }
-
-        $query = $pathItems[0] . "/" . $pathItems[1] . "?" . $query;
-
-        return base64_encode(hash($this->algorithms[$hashMethod], $query, true));
+        $this->url = $url;
+        $this->urlPath = $urlInfo['path'];
     }
 
-    private function _paramsToQueryString($params)
+    /**
+     * 
+     * @return null|string
+     */
+    public function getURL()
     {
+        return $this->url;
+    }
+
+    /**
+     * Set hash method , use constants.
+     * 
+     * @param int $hashMethod
+     * @throws WowzaException
+     */
+    public function setHashMethod($hashMethod)
+    {
+        if(!isset($this->algorithms[$hashMethod]))
+        {
+            throw new WowzaException("Algorithm [" . $hashMethod . "] not defined");
+        }
+        $this->hashMethod = $hashMethod;
+    }
+
+    /**
+     * 
+     * @return null|int
+     */
+    public function getHashMethod()
+    {
+        return $this->hashMethod;
+    }
+    
+    /**
+     * add extra params to hash generation
+     * 
+     * @param array $params
+     * @throws WowzaException
+     */
+    public function setExtraParams($params)
+    {
+        if(!is_array($params))
+        {
+            throw new WowzaException("\$params must be an array");
+        }
+        
         if($this->prefix)
         {
             foreach($params as $key => $param)
@@ -149,12 +192,84 @@ class WowzaSecureToken
                 }
             }
         }
+        
+        $this->params = $params;
+    }
+    
+    /**
+     * 
+     * @return array
+     */
+    public function getParams()
+    {
+        return $this->params;
+    }
 
+    /**
+     * 
+     * @return null|string
+     */
+    public function getSharedSecret()
+    {
+        return $this->sharedSecret;
+    }
+
+
+    /**
+     * 
+     * @return null|string
+     */
+    public function getPrefix()
+    {
+        return $this->prefix;
+    }
+
+    /**
+     * Get hash token
+     * 
+     * @return string
+     * @throws WowzaException
+     */
+    public function getHash()
+    {
+        if(!$this->sharedSecret)
+        {
+            throw new WowzaException("SharedSecret is not set");
+        }
+        $query = $this->_paramsToQueryString();
+
+        $path = ltrim($this->urlPath, '/');
+
+        $pathItems = explode('/', $path);
+        if(count($pathItems) < 2)
+        {
+            throw new WowzaException("Application or stream is invalid");
+        }
+
+        $query = $pathItems[0] . "/" . $pathItems[1] . "?" . $query;
+
+        return base64_encode(hash($this->algorithms[$this->hashMethod], $query, true));
+    }
+    
+    /**
+     * 
+     * Get full URL to use in JWplayer
+     * 
+     * @return string
+     */
+    public function getFullURL()
+    {
+        return $this->url."?".http_build_query($this->params).'&'.$this->prefix.'hash='.$this->getHash();
+    }
+
+    private function _paramsToQueryString()
+    {
+        $params = $this->params;
         if($this->clientIP !== null)
         {
             $params[$this->clientIP] = "";
         }
-
+        
         $params[$this->sharedSecret] = "";
         ksort($params);
 
@@ -169,18 +284,4 @@ class WowzaSecureToken
         }
         return trim($query, '&');
     }
-
-    private function _verifyConfiguration($hashMethod)
-    {
-        if(!$this->sharedSecret)
-        {
-            throw new WowzaException("SharedSecret is not set");
-        }
-
-        if(!isset($this->algorithms[$hashMethod]))
-        {
-            throw new WowzaException("Algorithm [" . $hashMethod . "] not defined");
-        }
-    }
-
 }
