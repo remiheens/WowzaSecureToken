@@ -2,7 +2,7 @@
     "name": "remiheens/php-wowza-securetoken",
     "description": "PHP library for Wowza SecureToken module",
     "license": "MIT",
-    "version": "0.1",
+    "version": "0.1.1",
     "type": "library",
     "keywords": ["php", "wowza", "securetoken"],
     "authors": [

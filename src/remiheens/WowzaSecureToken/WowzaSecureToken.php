@@ -248,7 +248,7 @@ class WowzaSecureToken
 
         $query = $pathItems[0] . "/" . $pathItems[1] . "?" . $query;
 
-        return base64_encode(hash($this->algorithms[$this->hashMethod], $query, true));
+        return strtr(base64_encode(hash($this->algorithms[$this->hashMethod], $query, true)),'+/','-_');
     }
     
     /**
