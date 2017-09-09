@@ -246,9 +246,24 @@ class WowzaSecureToken
             throw new WowzaException("Application or stream is invalid");
         }
 
-        $query = $pathItems[0] . "/" . $pathItems[1] . "?" . $query;
+        $path = "";
 
-        return strtr(base64_encode(hash($this->algorithms[$this->hashMethod], $query, true)),'+/','-_');
+        foreach ($pathItems as $k => $pathItem) {
+            if(false !== strpos($pathItem, 'm3u8')) {
+                break;
+            }
+            $path .= $pathItem;
+            if(count($pathItems)-1 != $k) {
+                $path .= '/';
+            }
+        }
+        if(strrpos($path, '/') === strlen($path)-1) {
+            $path = substr($path, 0, -1);
+        }
+
+        $path .= "?".$query;
+
+        return strtr(base64_encode(hash($this->algorithms[$this->hashMethod], $path, true)),'+/','-_');
     }
     
     /**
