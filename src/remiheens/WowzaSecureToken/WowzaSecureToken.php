@@ -249,7 +249,7 @@ class WowzaSecureToken
         $path = "";
 
         foreach ($pathItems as $k => $pathItem) {
-            if(false !== strpos($pathItem, 'm3u8')) {
+            if(1 === preg_match('/(^Manifest|\.m3u8|\.f4m|\.mpd)/',$pathItem)){
                 break;
             }
             $path .= $pathItem;
