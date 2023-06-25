@@ -252,6 +252,11 @@ class WowzaSecureToken
             if(1 === preg_match('/(^Manifest|\.m3u8|\.f4m|\.mpd)/',$pathItem)){
                 break;
             }
+
+            if (false !== strpos($pathItem, 'redirect') && $k === 0) {
+                continue;
+            }
+            
             $path .= $pathItem;
             if(count($pathItems)-1 != $k) {
                 $path .= '/';
